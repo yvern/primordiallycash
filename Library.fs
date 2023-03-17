@@ -13,6 +13,12 @@ module Scheduler =
   type User = Name of string
   type Schedule = Map<User, Appointment>
 
+  let generateDateSeq (from: DateOnly) (until: DateOnly) =
+    Seq.unfold (fun d -> if (until >= d)
+                            then Some (d, d.AddDays(1))
+                            else None)
+               from
+
   let (|ValidMonthly|_|) (s : string) =
     let mutable m = 0
     if Int32.TryParse(s, &m) && m > 0 && m < 29
@@ -53,6 +59,19 @@ module Scheduler =
     | ValidNever never -> Ok never
     | err -> err |> sprintf "%s did not conform to any valid format!" |> Error
 
+  let createSchedule appointments =
+    appointments
+    |> Result.map (Array.partition Result.isOk)
+    |> Result.bind (fun (users, errors) ->
+                      if not (Array.isEmpty errors)
+                      then errors
+                           |> Array.choose (function Ok _ -> None | Error e -> Some e)
+                           |> Error
+                      else users
+                           |> Array.choose Result.toOption
+                           |> Map.ofArray
+                           |> Ok)
+
   let check1 appointment (d: DateOnly) =
     match appointment with
     | Monthly md when d.Day = md -> true
@@ -60,7 +79,7 @@ module Scheduler =
     | Everyday -> true
     | Never | _ -> false
 
-  let selectcUsers (sch: Schedule) (d: DateOnly) : Set<User>=
+  let selectUsers (sch: Schedule) (d: DateOnly) : Set<User>=
     sch
     |> Map.filter (fun _ ap -> check1 ap d)
     |> Map.keys

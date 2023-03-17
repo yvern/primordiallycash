@@ -13,7 +13,7 @@ module Cli =
   let ResolutionFolder = __SOURCE_DIRECTORY__
   type Users = CsvProvider<"users.csv", ResolutionFolder=ResolutionFolder>
 
-  let checkPath (filename: string) =
+  let readCsv (filename: string) =
     let path = Path.GetFullPath(filename)
     if not (File.Exists(path))
     then Error [|(0, sprintf "File does not exist: %s" path)|]
@@ -25,41 +25,20 @@ module Cli =
          |> Array.ofSeq
          |> Ok
 
-
-  let readScheduleCsv (filename: string) =
-    checkPath filename
-    |> Result.map (Array.partition Result.isOk)
-    |> Result.bind (fun (users, errors) ->
-                      if not (Array.isEmpty errors)
-                      then errors
-                           |> Array.choose (function Ok _ -> None | Error e -> Some e)
-                           |> Error
-                      else users
-                           |> Array.choose Result.toOption
-                           |> Map.ofArray
-                           |> Ok)
-
-  let generateDateSeq (from: DateOnly) (until: DateOnly) =
-    Seq.unfold (fun d -> if (until >= d)
-                            then Some (d, d.AddDays(1))
-                            else None)
-               from
-
   let main filename from until =
-    match readScheduleCsv filename with
-      | Error errs ->
-        printfn "Errors Found!"
-        Array.iter (fun (l, e) -> printfn "%s:%i - %s" filename l e) errs
-        1
-
-      | Ok sch -> generateDateSeq from until
-                  |> Seq.iter (fun d ->
-                                (selectcUsers sch d)
-                                |> Seq.map (fun (Name u) -> u)
-                                |> String.concat ", "
-                                |> printfn "%s: %s" (d.ToString()))
-                  0
-
+    match filename |> readCsv |> createSchedule with
+    | Error errs ->
+      printfn "Errors Found!"
+      Array.iter (fun (l, e) -> printfn "%s:%i - %s" filename l e) errs
+      1
+    | Ok sch ->
+      generateDateSeq from until
+      |> Seq.iter (fun d ->
+                    (selectUsers sch d)
+                    |> Seq.map (fun (Name u) -> u)
+                    |> String.concat ", "
+                    |> printfn "%s: %s" (d.ToString()))
+      0
 
   [<EntryPoint>]
   let cli args =
