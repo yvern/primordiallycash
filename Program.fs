@@ -13,7 +13,7 @@ module Cli =
     1
 
   let main filename from until =
-    match filename |> Schedule.readCsv |> Schedule.create with
+    match Schedule.fromCsv filename with
     | Error errs -> Array.iter (printfn "%s") errs
                     1
     | Ok sch -> dateSpan from until

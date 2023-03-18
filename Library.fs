@@ -5,9 +5,10 @@ open System
 type User = Name of string
 
 type Agenda = (DateOnly * Set<User>) seq
+
 module Agenda =
 
-  let capitalize (d: string) =
+  let private capitalize (d: string) =
     let ld = d.Trim().ToLower()
     let c = ld.Substring(0, 1).ToUpper()
     c + ld.Substring(1)
@@ -20,13 +21,13 @@ module Agenda =
 
   [<RequireQualifiedAccess>]
   module Agenda =
+  
     let private fmtUsers (d, users) =
       users |> Seq.map (fun (Name u) -> u)
             |> String.concat ", "
             |> printfn "%s: %s" (d.ToString())
 
-    let show (agenda: Agenda)=
-      agenda |> Seq.iter fmtUsers
+    let show : Agenda -> unit = Seq.iter fmtUsers
 
   type Appointment =
     | Monthly of int
@@ -88,10 +89,10 @@ module Agenda =
     open FSharp.Data
 
     [<Literal>]
-    let ResolutionFolder = __SOURCE_DIRECTORY__
+    let ResolutionFolder = __SOURCE_DIRECTORY__ in
     type RawSchedule = CsvProvider<"users.csv", ResolutionFolder=ResolutionFolder>
 
-    let readCsv (filename: string) =
+    let private readCsv (filename: string) =
       let path = Path.GetFullPath(filename)
       if not (File.Exists(path))
       then Error [|sprintf "File does not exist: %s" path|]
@@ -103,10 +104,9 @@ module Agenda =
            |> Array.ofSeq
            |> Ok
 
-    let create appointments =
-      appointments
-      |> Result.map (Array.partition Result.isOk)
-      |> Result.bind (fun (users, errors) ->
+    let private create =
+      Result.map (Array.partition Result.isOk)
+      >> Result.bind (fun (users, errors) ->
                         if not (Array.isEmpty errors)
                         then errors
                              |> Array.choose (function Ok _ -> None | Error e -> Some e)
@@ -116,11 +116,13 @@ module Agenda =
                              |> Map.ofArray
                              |> Ok)
 
-    let selectUsers (sch: Schedule) (d: DateOnly) : DateOnly* Set<User>=
+    let fromCsv = readCsv >> create
+
+    let selectUsers (sch: Schedule) (d: DateOnly) =
       d, sch
          |> Map.filter (fun _ ap -> Appointment.check ap d)
          |> Map.keys
          |> set
 
-    let toAgenda (sch: Schedule) (dates: DateOnly seq) : Agenda =
+    let toAgenda (sch: Schedule) (dates: DateOnly seq) =
       Seq.map (selectUsers sch) dates

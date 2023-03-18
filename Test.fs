@@ -77,7 +77,7 @@ module Test =
                            set [Name "bob"; Name "yuri"] }
 
 
-      match __SOURCE_DIRECTORY__ + "/users.csv" |> Schedule.readCsv |> Schedule.create with
+      match __SOURCE_DIRECTORY__ + "/users.csv" |> Schedule.fromCsv with
       | Ok sch ->
         let marchAgenda = march2023
                           |> Seq.map (Schedule.selectUsers sch)
