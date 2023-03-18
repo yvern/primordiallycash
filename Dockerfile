@@ -11,7 +11,7 @@ COPY users.csv .
 COPY Library.fs .
 COPY Test.fs .
 COPY Program.fs .
-RUN dotnet test
+RUN dotnet test --no-restore
 
 FROM test as build
 COPY Makefile .

@@ -3,19 +3,17 @@
 module Cli =
 
   open System
-  open Scheduler
-  open Scheduler.IO
+  open Agenda
 
   let help () = printfn "help" ; 1
 
   let main filename from until =
-    match filename |> readCsv |> createSchedule with
+    match filename |> Schedule.readCsv |> Schedule.create with
     | Error errs -> Array.iter (printfn "%s") errs
                     1
-    | Ok sch -> generateDateSeq from until
-                |> Seq.iter (fun d ->
-                              (selectUsers sch d)
-                              |> fmtScheduleForDate d)
+    | Ok sch -> dateSpan from until
+                |> Schedule.toAgenda sch
+                |> Agenda.show
                 0
 
   [<EntryPoint>]
