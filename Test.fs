@@ -4,12 +4,13 @@ module Test =
 
   open System
   open Scheduler
+  open Scheduler.IO
   open NUnit.Framework
 
   let today = DateTime.Today |> DateOnly.FromDateTime
   let firstDayOfMonth = today.AddDays(1 - today.Day)
-  let month = Seq.initInfinite (fun i -> firstDayOfMonth.AddDays(i))
-              |> Seq.takeWhile (fun (d: DateOnly) -> d.Month = firstDayOfMonth.Month)
+  let lastDayOfTheMonth = firstDayOfMonth.AddMonths(1).AddDays(-1)
+  let thisMonth = generateDateSeq firstDayOfMonth lastDayOfTheMonth
 
   [<Test>]
   let ``Everyday and Never work the same regardles of date`` () =
@@ -20,12 +21,12 @@ module Test =
                       match (parse n, parse e) with
                       | (Ok n, Ok e) -> (Assert.False(check1 n d); Assert.True(check1 e d))
                       | _ -> Assert.Fail())
-    Seq.iter testAppointments month
+    Seq.iter testAppointments thisMonth
 
   [<Test>]
   let ``Montly will only pick a single value per month`` () =
       match parse (today.Day.ToString()) with
-      | Ok ns -> (let selected = month |> Seq.filter (check1 ns)
+      | Ok ns -> (let selected = thisMonth |> Seq.filter (check1 ns)
                   Assert.AreEqual(1, Seq.length selected)
                   Assert.AreEqual(today.Day, (Seq.exactlyOne selected).Day))
       | _ -> Assert.Fail()
@@ -38,3 +39,49 @@ module Test =
                  Assert.AreEqual(1, Seq.length selected)
                  Assert.AreEqual(today.DayOfWeek, (Seq.exactlyOne selected).DayOfWeek)
       | _ -> Assert.Fail()
+
+  [<Test>]
+  let ``Check full month for arbitrary schedule`` () =
+      let march2023 = (DateOnly.Parse("03/01/2023"), DateOnly.Parse("03/31/2023"))
+                      ||> generateDateSeq
+
+      let expected = seq { set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "alice"; Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"]
+                           set [Name "bob"]
+                           set [Name "bob"; Name "yuri"] }
+
+
+      match __SOURCE_DIRECTORY__ + "/users.csv" |> readCsv |> createSchedule with
+      | Ok sch ->
+        let marchAgenda = march2023
+                          |> Seq.map (selectUsers sch)
+        (expected, marchAgenda)
+        ||> Seq.iter2 (fun e r -> Assert.AreEqual(e, r))
+      | e -> Assert.Fail()

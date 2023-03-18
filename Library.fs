@@ -84,3 +84,30 @@ module Scheduler =
     |> Map.filter (fun _ ap -> check1 ap d)
     |> Map.keys
     |> set
+
+  module IO =
+
+    open System.IO
+    open FSharp.Data
+
+    [<Literal>]
+    let ResolutionFolder = __SOURCE_DIRECTORY__
+    type UsersSchedule = CsvProvider<"users.csv", ResolutionFolder=ResolutionFolder>
+
+    let readCsv (filename: string) =
+      let path = Path.GetFullPath(filename)
+      if not (File.Exists(path))
+      then Error [|sprintf "File does not exist: %s" path|]
+      else UsersSchedule.Load(path).Rows
+           |> Seq.mapi (fun i row ->
+                          parse row.Appointments
+                          |> Result.map (fun ap -> Name row.Name, ap)
+                          |> Result.mapError (sprintf "%s:%i - %s" filename (i+1)))
+           |> Array.ofSeq
+           |> Ok
+
+    let fmtScheduleForDate d =
+      Seq.map (fun (Name u) -> u)
+      >> String.concat ", "
+      >> printfn "%s: %s" (d.ToString())
+
