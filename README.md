@@ -18,11 +18,12 @@
 
 ### Spec
 
-As input, the core library expets a csv file in the same shape as the `users.csv` one, which it will interpret as a Schedule.
+As input, the core library expects a csv file in the same shape as the `users.csv` one, which it will interpret as a Schedule.
 It will then build an Agenda, and display it.
 
 If one runs the application from the commandline, with `dotnet run -- users.csv`, one would expect something similar to:
-```
+
+```plain
 3/1/2023: bob, yuri
 3/2/2023: bob
 3/3/2023: bob, yuri
@@ -59,8 +60,8 @@ If one runs the application from the commandline, with `dotnet run -- users.csv`
 ### Packaging
 
 A single file executable artifact can be generated with `make publish`.
-This still requires a dotnet runtime installed and available.
+This still requires a dotnet sdk to be built and a dotnet runtime installed and available to be executed.
 
 A Dockerfile is present for containerization, and one can create an image with `make build-img`.
-This command enables anyone without any dotnet sdk or runtimes to stil be able to build and run the image.
+This command enables anyone without any dotnet sdk or runtimes to still be able to build and run the image.
 It is also possible to pass a desired Schedule to be bundled into the image with `make build-img schedule=your-schedule.csv`, by default the `users.csv` is bundled.
