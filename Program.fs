@@ -5,7 +5,12 @@ module Cli =
   open System
   open Agenda
 
-  let help () = printfn "help" ; 1
+  let help () =
+    printfn "Please provide a csv file as argument. Usage:"
+    printfn " | primordiallycash schedule.csv -> print out the agenda for the current month"
+    printfn " | primordiallycash schedule.csv until -> print out the agenda from today until given date"
+    printfn " | primordiallycash schedule.csv from until -> print out the agenda for the give timespan"
+    1
 
   let main filename from until =
     match filename |> Schedule.readCsv |> Schedule.create with
@@ -24,6 +29,7 @@ module Cli =
     let mutable from = today
     let mutable until = from.AddMonths(1)
     match args with
+    | [||] | [| "help" |] -> help ()
     | [| filename |] -> main filename firstDayOfMonth lastDayOfTheMonth
     | [| filename ; untilArg |] ->
       if DateOnly.TryParse(untilArg, &until)
@@ -34,4 +40,4 @@ module Cli =
          && DateOnly.TryParse(untilArg, &until)
       then main filename from until
       else printfn "Error parsing dates: %s %s" fromArg untilArg ; 1
-    | _ -> help()
+    | _ -> help ()
